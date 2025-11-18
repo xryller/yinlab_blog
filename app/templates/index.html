@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>YinLab博客 - AI 驱动的生物计算平台</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;background:#fafbfc;color:#2c3e50;line-height:1.6}
+      
+      /* Navigation Bar */
+      .navbar{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:100}
+      .navbar-content{max-width:1400px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;align-items:center;height:70px}
+      .navbar-logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:#2c3e50}
+      .navbar-logo-icon{width:40px;height:40px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
+      .navbar-logo-text{font-size:24px;font-weight:700}
+      .navbar-menu{display:flex;gap:32px;align-items:center}
+      .navbar-item{text-decoration:none;color:#5a6c7d;font-size:15px;font-weight:500;transition:color 0.3s;position:relative;padding:8px 0;cursor:pointer}
+      .navbar-item:hover{color:#667eea}
+      .navbar-item.active{color:#667eea;font-weight:600}
+      .navbar-item.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#667eea}
+      .navbar-item.highlight{color:#f39c12;font-weight:600}
+      .navbar-search{padding:8px 16px;border:1px solid #ddd;border-radius:20px;background:#f9fafb;color:#5a6c7d;font-size:14px;transition:all 0.3s;cursor:pointer;border:none}
+      .navbar-search:hover{border-color:#667eea;background:#fff}
+      
+      /* Dropdown Menu */
+      .navbar-dropdown{position:relative}
+      .navbar-dropdown-content{display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:12px;background:#fff;min-width:280px;max-width:400px;box-shadow:0 8px 24px rgba(0,0,0,0.12);border-radius:12px;padding:12px 0;z-index:1000;max-height:400px;overflow-y:auto}
+      .navbar-dropdown:hover .navbar-dropdown-content{display:block}
+      .navbar-dropdown-content::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:8px solid #fff}
+      .dropdown-item{display:block;padding:10px 20px;color:#2c3e50;text-decoration:none;font-size:14px;transition:all 0.2s;border-left:3px solid transparent}
+      .dropdown-item:hover{background:#f8f9fa;border-left-color:#667eea;padding-left:24px}
+      .dropdown-title{font-weight:600;color:#667eea;font-size:13px;padding:8px 20px;text-transform:uppercase;letter-spacing:0.5px}
+      .dropdown-empty{padding:20px;text-align:center;color:#95a5a6;font-size:14px}
+      
+      @media(max-width:768px){
+        .navbar-menu{display:none}
+      }
+      
+      /* Hero Section */
+      .hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:80px 20px;text-align:center;position:relative;overflow:hidden}
+      .hero::before{content:'';position:absolute;top:-50%;right:-50%;width:100%;height:100%;background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%);animation:pulse 15s ease-in-out infinite}
+      @keyframes pulse{0%,100%{transform:scale(1);opacity:0.5}50%{transform:scale(1.5);opacity:0.8}}
+      .hero h1{font-size:48px;font-weight:700;margin-bottom:20px;text-shadow:0 2px 10px rgba(0,0,0,0.2);position:relative}
+      .hero p{font-size:20px;opacity:0.95;max-width:600px;margin:0 auto 30px;position:relative}
+      .hero-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative}
+      .hero-btn{padding:12px 32px;border-radius:50px;font-size:16px;font-weight:600;text-decoration:none;transition:all 0.3s;display:inline-block}
+      .hero-btn-primary{background:#fff;color:#667eea;box-shadow:0 4px 15px rgba(0,0,0,0.2)}
+      .hero-btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+      .hero-btn-secondary{background:rgba(255,255,255,0.2);color:#fff;border:2px solid #fff;backdrop-filter:blur(10px)}
+      .hero-btn-secondary:hover{background:rgba(255,255,255,0.3)}
+      /* Container */
+      .container{max-width:1200px;margin:0 auto;padding:60px 20px}
+      
+      /* Section Header */
+      .section-header{text-align:center;margin-bottom:50px}
+      .section-header h2{font-size:36px;font-weight:700;color:#2c3e50;margin-bottom:12px}
+      .section-header p{font-size:18px;color:#7f8c8d}
+      
+      /* Stats Section */
+      .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-bottom:60px}
+      .stat-card{background:#fff;padding:30px;border-radius:16px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);transition:all 0.3s}
+      .stat-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+      .stat-number{font-size:40px;font-weight:700;color:#667eea;margin-bottom:8px}
+      .stat-label{font-size:16px;color:#7f8c8d}
+      
+      /* Posts Grid */
+      .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:28px}
+      .post-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);transition:all 0.3s;position:relative}
+      .post-card:hover{transform:translateY(-6px);box-shadow:0 12px 28px rgba(0,0,0,0.15)}
+      .post-card a{text-decoration:none;color:inherit;display:block}
+      .post-header{padding:24px 24px 16px;border-bottom:1px solid #ecf0f1}
+      .post-category{display:inline-block;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:12px}
+      .post-title{font-size:22px;font-weight:600;color:#2c3e50;margin-bottom:12px;line-height:1.4}
+      .post-meta{display:flex;align-items:center;gap:16px;font-size:14px;color:#95a5a6}
+      .post-meta span{display:flex;align-items:center;gap:4px}
+      .post-content{padding:16px 24px 24px}
+      .post-summary{color:#5a6c7d;font-size:15px;line-height:1.6;margin-bottom:16px}
+      .post-tags{display:flex;flex-wrap:wrap;gap:8px}
+      .post-tag{padding:4px 12px;background:#ecf0f1;color:#5a6c7d;border-radius:12px;font-size:13px}
+      
+      /* Footer */
+      .footer{background:#2c3e50;color:#ecf0f1;padding:40px 20px;text-align:center;margin-top:80px}
+      .footer p{margin:8px 0}
+      .footer a{color:#fff;text-decoration:none;font-weight:600}
+      .footer a:hover{color:#667eea}
+      
+      /* Empty State */
+      .empty-state{text-align:center;padding:60px 20px}
+      .empty-state-icon{font-size:80px;margin-bottom:20px;opacity:0.3}
+      .empty-state h3{font-size:24px;color:#7f8c8d;margin-bottom:12px}
+      .empty-state p{color:#95a5a6}
+      
+      @media(max-width:768px){
+        .hero h1{font-size:36px}
+        .hero p{font-size:18px}
+        .posts-grid{grid-template-columns:1fr}
+        .stats{grid-template-columns:repeat(2,1fr)}
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <div class="navbar-content">
+        <a href="/" class="navbar-logo">
+          <div class="navbar-logo-icon">Y</div>
+          <span class="navbar-logo-text">YinLab博客</span>
+        </a>
+        <div class="navbar-menu">
+          <div class="navbar-dropdown">
+            <span class="navbar-item">蛋白质设计</span>
+            <div class="navbar-dropdown-content">
+              <div class="dropdown-title">🧬 蛋白质设计</div>
+              {% if categories_data.get('蛋白质设计') %}
+                {% for post in categories_data['蛋白质设计'][:10] %}
+                  <a href="{{ post.path }}" class="dropdown-item">{{ post.title }}</a>
+                {% endfor %}
+              {% else %}
+                <div class="dropdown-empty">暂无文章</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="navbar-dropdown">
+            <span class="navbar-item">酶挖掘</span>
+            <div class="navbar-dropdown-content">
+              <div class="dropdown-title">🔬 酶挖掘</div>
+              {% if categories_data.get('酶挖掘') %}
+                {% for post in categories_data['酶挖掘'][:10] %}
+                  <a href="{{ post.path }}" class="dropdown-item">{{ post.title }}</a>
+                {% endfor %}
+              {% else %}
+                <div class="dropdown-empty">暂无文章</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="navbar-dropdown">
+            <span class="navbar-item">酶进化</span>
+            <div class="navbar-dropdown-content">
+              <div class="dropdown-title">🧪 酶进化</div>
+              {% if categories_data.get('酶进化') %}
+                {% for post in categories_data['酶进化'][:10] %}
+                  <a href="{{ post.path }}" class="dropdown-item">{{ post.title }}</a>
+                {% endfor %}
+              {% else %}
+                <div class="dropdown-empty">暂无文章</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="navbar-dropdown">
+            <span class="navbar-item">工具类</span>
+            <div class="navbar-dropdown-content">
+              <div class="dropdown-title">🛠️ 工具类</div>
+              {% if categories_data.get('工具类') %}
+                {% for post in categories_data['工具类'][:10] %}
+                  <a href="{{ post.path }}" class="dropdown-item">{{ post.title }}</a>
+                {% endfor %}
+              {% else %}
+                <div class="dropdown-empty">暂无文章</div>
+              {% endif %}
+            </div>
+          </div>
+          <a href="/" class="navbar-item highlight">首页</a>
+          <button class="navbar-search" onclick="alert('搜索功能开发中...')">🔍</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero">
+      <h1>🧬 YinLab 生物计算平台</h1>
+      <p>专注蛋白质设计、酶工程与生物信息学 · AI 赋能生命科学研究</p>
+      <div class="hero-buttons">
+        <a href="#posts" class="hero-btn hero-btn-primary">📚 浏览文章</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Stats Section -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number">{{ posts|length }}</div>
+          <div class="stat-label">📝 篇文章</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{{ categories|length }}</div>
+          <div class="stat-label">📚 个分类</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">∞</div>
+          <div class="stat-label">✨ AI 驱动</div>
+        </div>
+      </div>
+
+      <!-- Posts Section -->
+      <div class="section-header" id="posts">
+        <h2>🌟 精选文章</h2>
+        <p>由 DeepSeek AI 智能生成的高质量技术博文</p>
+      </div>
+
+      {% if posts %}
+      <div class="posts-grid">
+        {% for p in posts %}
+          <div class="post-card">
+            <a href="{{ p.path }}">
+              <div class="post-header">
+                <div class="post-category">{{ p.category or '未分类' }}</div>
+                <h3 class="post-title">{{ p.title or p.name }}</h3>
+                <div class="post-meta">
+                  <span>📅 {{ p.date or '未知' }}</span>
+                  {% if p.tags %}
+                  <span>🏷️ {{ p.tags|length }} 标签</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="post-content">
+                {% if p.summary %}
+                <p class="post-summary">{{ p.summary[:120] }}{{ '...' if p.summary|length > 120 else '' }}</p>
+                {% endif %}
+                {% if p.tags %}
+                <div class="post-tags">
+                  {% for tag in p.tags[:3] %}
+                  <span class="post-tag">#{{ tag }}</span>
+                  {% endfor %}
+                  {% if p.tags|length > 3 %}
+                  <span class="post-tag">+{{ p.tags|length - 3 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <h3>还没有文章</h3>
+        <p>去 <a href="/admin" style="color:#667eea">管理后台</a> 上传文件生成你的第一篇博文吧！</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>🧬 <strong>YinLab博客</strong> - Powered by <a href="https://www.deepseek.com" target="_blank">DeepSeek AI</a></p>
+      <p>© 2025 专注蛋白质设计与酶工程研究</p>
+    </div>
+  </body>
+</html>

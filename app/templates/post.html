@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ title }}</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","WenQuanYi Micro Hei",Arial,sans-serif;background:#f5f5f5;color:#333;font-size:17px;line-height:1.8}
+      .article{max-width:740px;margin:0 auto;background:#fff;padding:0}
+      .header{padding:40px 24px 24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}
+      .header h1{font-size:28px;font-weight:600;line-height:1.4;margin-bottom:16px;text-shadow:0 2px 4px rgba(0,0,0,.1)}
+      .meta{font-size:14px;opacity:0.9;margin-top:12px}
+      .meta span{margin-right:16px}
+      .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+      .tag{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:16px;font-size:13px;backdrop-filter:blur(10px)}
+      .summary-box{margin:24px;padding:20px;background:linear-gradient(to right,#e0f7fa,#e1f5fe);border-left:4px solid #00acc1;border-radius:8px}
+      .summary-box strong{color:#00838f;font-size:15px}
+      .summary-box p{margin-top:8px;color:#00695c;line-height:1.7}
+      .content{padding:24px;font-size:17px;line-height:1.9;color:#3a3a3a}
+      .content p{margin:20px 0;text-align:justify}
+      .content h2{font-size:24px;font-weight:600;color:#2c3e50;margin:40px 0 20px;padding-bottom:12px;border-bottom:2px solid #e0e0e0}
+      .content h3{font-size:20px;font-weight:600;color:#34495e;margin:32px 0 16px}
+      .content h4{font-size:18px;font-weight:600;color:#555;margin:24px 0 12px}
+      .content ul,.content ol{margin:16px 0;padding-left:28px}
+      .content li{margin:8px 0;line-height:1.8}
+      .content blockquote{margin:24px 0;padding:16px 20px;background:#f9fafb;border-left:4px solid #3498db;color:#555;font-style:italic;border-radius:4px}
+      .content code{background:#f4f4f4;padding:2px 6px;border-radius:3px;font-family:Consolas,Monaco,monospace;font-size:15px;color:#e74c3c}
+      .content pre{background:#2c3e50;color:#ecf0f1;padding:20px;border-radius:8px;overflow-x:auto;margin:24px 0;line-height:1.6}
+      .content pre code{background:none;padding:0;color:#ecf0f1;font-size:14px}
+      .content strong{color:#2c3e50;font-weight:600}
+      .content em{color:#7f8c8d}
+      .content img{max-width:100%;height:auto;border-radius:8px;margin:24px 0;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+      .content hr{margin:32px 0;border:0;border-top:1px solid #e0e0e0}
+      .content table{width:100%;border-collapse:collapse;margin:24px 0}
+      .content th,.content td{border:1px solid #ddd;padding:12px;text-align:left}
+      .content th{background:#f8f9fa;font-weight:600}
+      .footer{padding:32px 24px;background:#fafafa;border-top:1px solid #e0e0e0;text-align:center;font-size:14px;color:#888}
+      @media(max-width:768px){body{font-size:16px}.header h1{font-size:24px}.content{padding:20px;font-size:16px}.content h2{font-size:22px}.content h3{font-size:19px}}
+    </style>
+  </head>
+  <body>
+    <article class="article">
+      <header class="header">
+        <h1>{{ title }}</h1>
+        <div class="meta">
+          <span>📅 {{ date }}</span>
+          <span>📚 {{ category }}</span>
+        </div>
+        {% if tags %}
+        <div class="tags">
+          {% for tag in tags %}
+            <span class="tag">#{{ tag }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </header>
+      {% if summary %}
+      <div class="summary-box">
+        <strong>📌 核心摘要</strong>
+        <p>{{ summary }}</p>
+      </div>
+      {% endif %}
+      <div class="content">
+        {{ content | safe }}
+      </div>
+      <footer class="footer">
+        <p>感谢阅读 · 欢迎分享</p>
+      </footer>
+    </article>
+  </body>
+</html>
