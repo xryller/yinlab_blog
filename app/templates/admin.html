@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>管理后台 - MPNN Blog</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;margin:0;padding:24px;background:#f5f7fa}
+      h1{color:#333;margin-bottom:8px}
+      .header{background:#fff;padding:20px;border-radius:8px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+      .posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+      .post-card{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.3s}
+      .post-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.12);transform:translateY(-2px)}
+      .post-card h3{margin:0 0 12px;color:#333;font-size:18px}
+      .post-meta{font-size:13px;color:#888;margin-bottom:12px}
+      .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+      .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;text-decoration:none;display:inline-block}
+      .btn-edit{background:#007bff;color:#fff}
+      .btn-edit:hover{background:#0056b3}
+      .btn-view{background:#28a745;color:#fff}
+      .btn-view:hover{background:#1e7e34}
+      .btn-openwebui{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+      .btn-openwebui:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}
+      .btn-delete{background:#dc3545;color:#fff}
+      .btn-delete:hover{background:#c82333;transform:translateY(-1px);box-shadow:0 4px 12px rgba(220,53,69,0.4)}
+      
+      /* Editor Modal */
+      .editor-modal{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center}
+      .editor-modal.show{display:flex}
+      .editor-content{background:#fff;padding:32px;border-radius:12px;width:90%;max-width:900px;max-height:85vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3)}
+      .editor-content h2{margin-top:0;color:#333;border-bottom:2px solid #007bff;padding-bottom:12px}
+      .form-group{margin-bottom:20px}
+      .form-group label{display:block;font-weight:600;margin-bottom:8px;color:#555}
+      .form-group input,.form-group textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:15px;font-family:inherit;transition:border-color 0.3s}
+      .form-group input:focus,.form-group textarea:focus{outline:none;border-color:#007bff;box-shadow:0 0 0 3px rgba(0,123,255,0.1)}
+      .form-group textarea{min-height:200px;font-family:Consolas,Monaco,monospace;line-height:1.6}
+      .btn-group-modal{display:flex;gap:12px;margin-top:24px}
+      .btn-save{background:#28a745;color:#fff}
+      .btn-save:hover{background:#218838;transform:translateY(-1px);box-shadow:0 4px 12px rgba(40,167,69,0.3)}
+      .btn-ai{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+      .btn-ai:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}
+      .btn-cancel{background:#6c757d;color:#fff}
+      .btn-cancel:hover{background:#5a6268}
+      .btn-delete{background:#dc3545;color:#fff}
+      .btn-delete:hover{background:#c82333;transform:translateY(-1px);box-shadow:0 4px 12px rgba(220,53,69,0.4)}
+      .ai-status{margin-top:12px;padding:12px;background:#f0f8ff;border-left:4px solid #007bff;border-radius:4px;display:none}
+      .ai-status.show{display:block}
+
+      /* OpenWebUI Modal */
+      #ow-modal{display:none;position:fixed;left:5%;top:5%;width:90%;height:90%;background:#fff;border-radius:12px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,0.5);z-index:10000}
+      #ow-modal iframe{width:100%;height:calc(100% - 50px);border:0;border-radius:8px}
+      .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+      .modal-header h3{margin:0;color:#333}
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>📝 管理后台</h1>
+      <p style="color:#666;margin:8px 0 0 0">文章管理 · 上传生成 · AI 优化 | OpenWebUI: <a href="{{ openwebui }}" target="_blank" style="color:#007bff">{{ openwebui }}</a></p>
+    </div>
+
+    <!-- Upload Section -->
+    <div style="max-width:1200px;margin:0 auto 24px;padding:0 20px">
+      <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <h2 style="margin:0 0 8px;color:#333;font-size:24px">🚀 上传文件生成博文</h2>
+        <p style="color:#666;margin:0 0 20px;font-size:14px">支持 PDF、Word、PPT 格式，可一次上传多个文件</p>
+        <form action="/upload" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <label style="display:block;font-weight:600;margin-bottom:8px;color:#555;font-size:14px">📚 分类</label>
+            <input type="text" name="category" placeholder="例如：深度学习" value="未分类" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px">
+          </div>
+          <div style="flex:2;min-width:300px">
+            <label style="display:block;font-weight:600;margin-bottom:8px;color:#555;font-size:14px">📄 选择文件</label>
+            <input type="file" name="files" multiple required style="width:100%;padding:8px;border:2px dashed #ddd;border-radius:6px;background:#f9fafb">
+          </div>
+          <button type="submit" class="btn" style="padding:12px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 12px rgba(102,126,234,0.3)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(102,126,234,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(102,126,234,0.3)'">
+            ✨ 生成博文
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div style="max-width:1200px;margin:0 auto;padding:0 20px">
+      <h2 style="margin:0 0 20px;color:#333;font-size:24px">📋 所有文章</h2>
+    </div>
+
+    <div class="posts-grid">
+      {% for p in posts %}
+        <div class="post-card">
+          <h3>{{ p.title or p.name }}</h3>
+          <div class="post-meta">
+            📅 {{ p.date }} | 📁 {{ p.category }}
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-edit" onclick="openEditor('{{ p.slug }}')">✏️ 编辑</button>
+            <a class="btn btn-view" href="/site/{{ p.slug }}.html" target="_blank">👁️ 预览</a>
+            <button class="btn btn-openwebui" onclick="openInOW('{{ p.slug }}')">🚀 OpenWebUI</button>
+            <button class="btn btn-delete" onclick="deletePost('{{ p.slug }}')">🗑️ 删除</button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Editor Modal -->
+    <div class="editor-modal" id="editorModal">
+      <div class="editor-content">
+        <h2>✏️ 编辑文章</h2>
+        <div class="form-group">
+          <label>标题</label>
+          <input id="editTitle" type="text" placeholder="输入文章标题">
+        </div>
+        <div class="form-group">
+          <label>摘要</label>
+          <textarea id="editSummary" rows="3" placeholder="输入文章摘要"></textarea>
+        </div>
+        <div class="form-group">
+          <label>正文 (Markdown)</label>
+          <textarea id="editContent" rows="12" placeholder="输入 Markdown 格式正文"></textarea>
+        </div>
+        <div class="form-group">
+          <label>标签 (逗号分隔)</label>
+          <input id="editTags" type="text" placeholder="标签1, 标签2, 标签3">
+        </div>
+        <div class="btn-group-modal">
+          <button class="btn btn-save" onclick="savePost()">💾 保存</button>
+          <button class="btn btn-ai" onclick="aiRewrite()">✨ AI 优化</button>
+          <button class="btn btn-cancel" onclick="closeEditor()">取消</button>
+        </div>
+        <div class="ai-status" id="aiStatus"></div>
+      </div>
+    </div>
+
+    <!-- OpenWebUI Modal -->
+    <div id="ow-modal">
+      <div class="modal-header">
+        <h3>🚀 OpenWebUI 编辑器</h3>
+        <button class="btn btn-cancel" onclick="closeOW()">关闭</button>
+      </div>
+      <iframe id="ow-frame" src="about:blank"></iframe>
+    </div>
+
+    <script>
+      let currentSlug = null
+      const OW_ORIGIN = (new URL('{{ openwebui }}')).origin
+
+      async function openEditor(slug) {
+        currentSlug = slug
+        const res = await fetch(`/post/${slug}`)
+        if(!res.ok){alert('加载失败');return}
+        const data = await res.json()
+        document.getElementById('editTitle').value = data.title || ''
+        document.getElementById('editSummary').value = data.summary || ''
+        document.getElementById('editContent').value = data.content || ''
+        document.getElementById('editTags').value = (data.tags || []).join(', ')
+        document.getElementById('editorModal').classList.add('show')
+      }
+
+      function closeEditor() {
+        document.getElementById('editorModal').classList.remove('show')
+        document.getElementById('aiStatus').className = 'ai-status'
+      }
+
+      async function savePost() {
+        if(!currentSlug) return
+        const payload = {
+          title: document.getElementById('editTitle').value,
+          summary: document.getElementById('editSummary').value,
+          content: document.getElementById('editContent').value,
+          tags: document.getElementById('editTags').value.split(',').map(s=>s.trim()).filter(Boolean)
+        }
+        const res = await fetch(`/review/${currentSlug}`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
+        })
+        if(res.ok){
+          alert('✅ 保存成功！')
+          closeEditor()
+          location.reload()
+        } else {
+          const j = await res.json()
+          alert('❌ 保存失败: '+(j.error||'未知错误'))
+        }
+      }
+
+      async function aiRewrite() {
+        const status = document.getElementById('aiStatus')
+        const contentEl = document.getElementById('editContent')
+        const titleEl = document.getElementById('editTitle')
+        const summaryEl = document.getElementById('editSummary')
+        const tagsEl = document.getElementById('editTags')
+        
+        status.className = 'ai-status show'
+        status.textContent = '🤖 AI 正在优化内容，请稍候...'
+        
+        try {
+          const res = await fetch('/api/ai-rewrite', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              title: titleEl.value,
+              summary: summaryEl.value,
+              content: contentEl.value,
+              tags: tagsEl.value
+            })
+          })
+          
+          if(!res.ok) throw new Error('AI 请求失败')
+          
+          const data = await res.json()
+          if (data.title) titleEl.value = data.title
+          if (data.summary) summaryEl.value = data.summary
+          if (data.content) contentEl.value = data.content
+          if (data.tags) tagsEl.value = data.tags.join(', ')
+          
+          status.textContent = '✅ AI 优化完成！请检查并保存。'
+          status.style.background = '#d4edda'
+          status.style.borderColor = '#28a745'
+        } catch(err) {
+          status.textContent = '❌ AI 优化失败: ' + err.message
+          status.style.background = '#f8d7da'
+          status.style.borderColor = '#dc3545'
+        }
+      }
+
+      async function openInOW(slug) {
+        currentSlug = slug
+        const res = await fetch(`/post/${slug}`)
+        if(!res.ok){alert('加载失败');return}
+        const data = await res.json()
+        const frame = document.getElementById('ow-frame')
+        frame.src = '{{ openwebui }}'
+        document.getElementById('ow-modal').style.display = 'block'
+
+        frame.onload = () => {
+          try{
+            frame.contentWindow.postMessage({type:'prefill', payload: data}, OW_ORIGIN)
+          }catch(e){ console.warn('postMessage 失败', e) }
+        }
+      }
+
+      function closeOW() {
+        document.getElementById('ow-modal').style.display = 'none'
+        document.getElementById('ow-frame').src = 'about:blank'
+      }
+
+      async function deletePost(slug) {
+        if(!confirm('确定要删除这篇文章吗？此操作不可恢复！')) return
+        
+        try {
+          const res = await fetch(`/post/${slug}`, {method: 'DELETE'})
+          if(res.ok) {
+            alert('✅ 删除成功！')
+            location.reload()
+          } else {
+            const j = await res.json()
+            alert('❌ 删除失败: ' + (j.error || '未知错误'))
+          }
+        } catch(err) {
+          alert('❌ 删除失败: ' + err.message)
+        }
+      }
+
+      // Listen for messages from OpenWebUI iframe
+      window.addEventListener('message', async (ev)=>{
+        try{
+          if(ev.origin !== OW_ORIGIN) return
+          const msg = ev.data
+          if(!msg || msg.type !== 'export') return
+          const payload = msg.payload
+          if(!currentSlug) return
+          const r = await fetch(`/review/${currentSlug}`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(payload)
+          })
+          if(r.ok){ 
+            alert('✅ 从 OpenWebUI 保存成功')
+            closeOW()
+            location.reload()
+          } else { 
+            const j = await r.json().catch(()=>({error:'未知错误'}))
+            alert('❌ 保存失败: '+(j.error||'未知错误'))
+          }
+        }catch(e){ console.error(e) }
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Admin - MPNN Blog</title>
+    <style>
+      body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px}
+      .post{margin-bottom:12px}
+      .btn{padding:6px 10px;margin-left:6px}
+      #editor{display:none;position:fixed;left:10%;top:10%;width:80%;height:80%;background:#fff;border:1px solid #ccc;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);overflow:auto}
+      #editor textarea{width:100%;height:60%;}
+      /* OpenWebUI modal */
+      #ow-modal{display:none;position:fixed;left:5%;top:5%;width:90%;height:90%;background:#fff;border:1px solid #ccc;padding:8px;box-shadow:0 6px 30px rgba(0,0,0,.3)}
+      #ow-modal iframe{width:100%;height:88%;border:0}
+    </style>
+  </head>
+  <body>
+    <h1>Admin</h1>
+    <p>OpenWebUI URL: <a href="{{ openwebui }}" target="_blank">{{ openwebui }}</a></p>
+    <div id="posts">
+      {% for p in posts %}
+        <div class="post">
+          <strong>{{ p.name }}</strong>
+          <button class="btn" onclick="openEditor('{{ p.slug }}')">Edit</button>
+          <a class="btn" href="/site/{{ p.slug }}.html" target="_blank">View</a>
+          <button class="btn" onclick="openInOW('{{ p.slug }}')">Open in OpenWebUI</button>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div id="editor">
+      <h3 id="edit-title">Edit</h3>
+      <label>Title</label>
+      <input id="field-title" style="width:100%">
+      <label>Summary</label>
+      <textarea id="field-summary"></textarea>
+      <label>Content</label>
+      <textarea id="field-content"></textarea>
+      <label>Tags (comma separated)</label>
+      <input id="field-tags" style="width:100%">
+      <div style="margin-top:8px">
+        <button onclick="applyEdits()">Apply</button>
+        <button onclick="closeEditor()">Close</button>
+      </div>
+    </div>
+
+    <div id="ow-modal">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>OpenWebUI Editor</strong>
+        <div><button onclick="closeOW()">Close</button></div>
+      </div>
+      <iframe id="ow-frame" src="about:blank"></iframe>
+    </div>
+
+    <script>
+      let currentSlug = null
+      async function openEditor(slug){
+        currentSlug = slug
+        const res = await fetch(`/post/${slug}`)
+        if(!res.ok){alert('failed to load');return}
+        const data = await res.json()
+        document.getElementById('field-title').value = data.title||''
+        document.getElementById('field-summary').value = data.summary||''
+        document.getElementById('field-content').value = data.content||''
+        document.getElementById('field-tags').value = (data.tags||[]).join(', ')
+        document.getElementById('editor').style.display = 'block'
+      }
+      function closeEditor(){ document.getElementById('editor').style.display='none' }
+      async function applyEdits(){
+        if(!currentSlug) return
+        const payload = {
+          title: document.getElementById('field-title').value,
+          summary: document.getElementById('field-summary').value,
+          content: document.getElementById('field-content').value,
+          tags: document.getElementById('field-tags').value.split(',').map(s=>s.trim()).filter(Boolean)
+        }
+        const res = await fetch(`/review/${currentSlug}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)})
+        if(res.ok){
+          alert('Saved')
+          closeEditor()
+        } else {
+          const j = await res.json()
+          alert('Error: '+(j.error||'unknown'))
+        }
+      }
+
+      // OpenWebUI integration via iframe + postMessage
+      const OW_ORIGIN = (new URL('{{ openwebui }}')).origin
+      async function openInOW(slug){
+        currentSlug = slug
+        const res = await fetch(`/post/${slug}`)
+        if(!res.ok){alert('failed to load');return}
+        const data = await res.json()
+        const frame = document.getElementById('ow-frame')
+        frame.src = '{{ openwebui }}'
+        document.getElementById('ow-modal').style.display = 'block'
+
+        frame.onload = () => {
+          try{
+            frame.contentWindow.postMessage({type:'prefill', payload: data}, OW_ORIGIN)
+          }catch(e){ console.warn('failed to postMessage to iframe', e) }
+        }
+      }
+      function closeOW(){ document.getElementById('ow-modal').style.display = 'none'; document.getElementById('ow-frame').src='about:blank' }
+
+      // Listen for messages from OpenWebUI iframe. Expected: {type:'export', payload:{title,summary,content,tags}}
+      window.addEventListener('message', async (ev)=>{
+        try{
+          if(ev.origin !== OW_ORIGIN) return
+          const msg = ev.data
+          if(!msg || msg.type !== 'export') return
+          const payload = msg.payload
+          if(!currentSlug) return
+          const r = await fetch(`/review/${currentSlug}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)})
+          if(r.ok){ alert('Saved from OpenWebUI'); closeOW() }
+          else { const j = await r.json().catch(()=>({error:'unknown'})); alert('Save failed: '+(j.error||'unknown')) }
+        }catch(e){ console.error(e) }
+      })
+    </script>
+  </body>
+</html>
