@@ -35,6 +35,46 @@
       .content table{width:100%;border-collapse:collapse;margin:24px 0}
       .content th,.content td{border:1px solid #ddd;padding:12px;text-align:left}
       .content th{background:#f8f9fa;font-weight:600}
+      
+      /* Image Gallery Styles */
+      .image-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin:32px 0}
+      .image-gallery figure{margin:0;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.08);transition:transform .3s, box-shadow .3s; border: 1px solid #eee;}
+      .image-gallery figure:hover{transform:translateY(-5px); box-shadow:0 8px 20px rgba(0,0,0,.12);}
+      .image-gallery img{width:100%;height:auto;display:block; background-color: #fafafa;}
+      .image-gallery figcaption{padding:12px 15px;font-size:13px;color:#555;text-align:center;background:#f9fafb; border-top: 1px solid #eee;}
+
+      /* Specific gallery styles */
+      .ppt-gallery {
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+      }
+      .ppt-gallery figure {
+        border: 1px solid #ddd;
+      }
+
+      .notes-gallery {
+        background-color: #fdfdfd;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+      }
+
+      /* Discussion Notes Style */
+      .discussion-notes{margin:32px 0;padding:28px;background: #fff;border:1px solid #e0e0e0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.04); position: relative; overflow: hidden;}
+      .discussion-notes::before {
+        content: '💬';
+        position: absolute;
+        top: -20px;
+        left: -15px;
+        font-size: 60px;
+        opacity: 0.08;
+        transform: rotate(-15deg);
+      }
+      .discussion-notes p{margin:12px 0;line-height:1.9;color:#333}
+      .discussion-notes strong{color:#c0392b; font-weight: 600;}
+      .discussion-notes ul, .discussion-notes ol { padding-left: 25px; }
+      .discussion-notes li { margin-bottom: 8px; }
+      
       .footer{padding:32px 24px;background:#fafafa;border-top:1px solid #e0e0e0;text-align:center;font-size:14px;color:#888}
       @media(max-width:768px){body{font-size:16px}.header h1{font-size:24px}.content{padding:20px;font-size:16px}.content h2{font-size:22px}.content h3{font-size:19px}}
     </style>

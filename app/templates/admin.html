@@ -63,21 +63,44 @@
     <!-- Upload Section -->
     <div style="max-width:1200px;margin:0 auto 24px;padding:0 20px">
       <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-        <h2 style="margin:0 0 8px;color:#333;font-size:24px">🚀 上传文件生成博文</h2>
-        <p style="color:#666;margin:0 0 20px;font-size:14px">支持 PDF、Word、PPT 格式，可一次上传多个文件</p>
-        <form action="/upload" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+        <h2 style="margin:0 0 8px;color:#333;font-size:24px">🚀 批量上传文件</h2>
+        <p style="color:#666;margin:0 0 20px;font-size:14px">支持大文件批量上传(PDF、Word、PPT)，上传后会创建时间戳文件夹，稍后可选择生成博文</p>
+          <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
           <div style="flex:1;min-width:200px">
             <label style="display:block;font-weight:600;margin-bottom:8px;color:#555;font-size:14px">📚 分类</label>
-            <input type="text" name="category" placeholder="例如：深度学习" value="未分类" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px">
+            <input type="text" id="uploadCategory" name="category" placeholder="例如：蛋白质设计" value="未分类" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px">
           </div>
           <div style="flex:2;min-width:300px">
-            <label style="display:block;font-weight:600;margin-bottom:8px;color:#555;font-size:14px">📄 选择文件</label>
-            <input type="file" name="files" multiple required style="width:100%;padding:8px;border:2px dashed #ddd;border-radius:6px;background:#f9fafb">
+            <label style="display:block;font-weight:600;margin-bottom:8px;color:#555;font-size:14px">📄 选择文件(支持多选)</label>
+            <input type="file" id="uploadFiles" name="files" multiple required style="width:100%;padding:8px;border:2px dashed #ddd;border-radius:6px;background:#f9fafb">
           </div>
-          <button type="submit" class="btn" style="padding:12px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 12px rgba(102,126,234,0.3)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(102,126,234,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(102,126,234,0.3)'">
-            ✨ 生成博文
+          <button id="uploadBtn" type="submit" onclick="uploadFiles()" class="btn" style="padding:12px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 12px rgba(102,126,234,0.3)">
+            ⬆️ 上传文件
           </button>
         </form>
+        <div id="uploadProgress" style="display:none;margin-top:16px;padding:12px;background:#e7f3ff;border-left:4px solid #007bff;border-radius:4px">
+          <div id="uploadStatus">正在上传...</div>
+          <div style="margin-top:12px;background:#e0e0e0;border-radius:8px;height:24px;overflow:hidden;position:relative">
+            <div id="uploadProgressBar" style="height:100%;background:linear-gradient(90deg,#007bff,#0056b3);width:0%;transition:width 0.3s;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600"></div>
+          </div>
+          <div id="uploadDetails" style="margin-top:8px;font-size:13px;color:#666"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Folders Section -->
+    <div style="max-width:1200px;margin:0 auto 24px;padding:0 20px">
+      <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h2 style="margin:0;color:#333;font-size:24px">📁 已上传文件夹</h2>
+          <button onclick="loadFolders()" class="btn" style="padding:8px 20px;background:#28a745;color:#fff">🔄 刷新</button>
+        </div>
+        <div style="margin:0 0 12px 0;font-size:13px;color:#555;background:#f1f8ff;border-left:4px solid #17a2b8;padding:10px 12px;border-radius:6px">
+          支持通过 FTP/SFTP 将文件放到 <code>/app/uploads/</code> 下的日期命名文件夹（如 <code>20250101_120000</code>）。本页会自动扫描这些文件夹（即使没有 _metadata.json），点击 “生成博文” 即可处理该文件夹内的所有内容。
+        </div>
+        <div id="foldersList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:16px">
+          <!-- Folders will be loaded here -->
+        </div>
       </div>
     </div>
 
@@ -142,7 +165,101 @@
 
     <script>
       let currentSlug = null
-      const OW_ORIGIN = (new URL('{{ openwebui }}')).origin
+      const OW_ORIGIN = (new URL('{{ openwebui }}')).origin;
+      // Store polling intervals to manage them
+      const pollingIntervals = {};
+
+      function updateFolderCardStatus(timestamp, status, data = {}) {
+        const card = document.getElementById(`folder-card-${timestamp}`);
+        if (!card) return;
+
+        const statusBadge = card.querySelector('.status-badge');
+        const generateBtn = card.querySelector('.generate-btn');
+        const resultDiv = card.querySelector('.result-message');
+        
+        resultDiv.innerHTML = ''; // Clear previous messages
+
+        switch (status) {
+            case 'pending':
+                card.style.borderLeftColor = '#ffc107';
+                statusBadge.style.backgroundColor = '#fff3cd';
+                statusBadge.style.color = '#856404';
+                statusBadge.textContent = '⏳ 待处理';
+                generateBtn.disabled = false;
+                generateBtn.textContent = '✨ 生成博文';
+                generateBtn.style.background = '#007bff';
+                break;
+            case 'running':
+                card.style.borderLeftColor = '#17a2b8';
+                statusBadge.style.backgroundColor = '#d1ecf1';
+                statusBadge.style.color = '#0f5661';
+                statusBadge.textContent = '⚙️ 生成中...';
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ 生成中...';
+                generateBtn.style.background = '#5bc0de';
+                break;
+            case 'completed':
+                card.style.borderLeftColor = '#28a745';
+                statusBadge.style.backgroundColor = '#d4edda';
+                statusBadge.style.color = '#155724';
+                statusBadge.textContent = '✅ 已完成';
+                generateBtn.disabled = true;
+                generateBtn.textContent = '✅ 已生成';
+                generateBtn.style.background = '#6c757d';
+                if (data.url) {
+                    resultDiv.innerHTML = `<a href="${data.url}" target="_blank" class="btn btn-view" style="margin-top:8px;display:inline-block;width:100%;text-align:center;">👁️ 查看博文</a>`;
+                }
+                break;
+            case 'failed':
+                card.style.borderLeftColor = '#dc3545';
+                statusBadge.style.backgroundColor = '#f8d7da';
+                statusBadge.style.color = '#721c24';
+                statusBadge.textContent = '❌ 失败';
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🔁 重新生成';
+                generateBtn.style.background = '#dc3545';
+                if (data.error) {
+                    resultDiv.innerHTML = `<div style="margin-top:8px;padding:8px;background:#f8d7da;color:#721c24;border-radius:4px;font-size:12px;word-wrap:break-word;"><strong>错误:</strong> ${data.error}</div>`;
+                }
+                break;
+        }
+      }
+
+      function pollStatus(timestamp) {
+          if (pollingIntervals[timestamp]) {
+              clearInterval(pollingIntervals[timestamp]);
+          }
+
+          pollingIntervals[timestamp] = setInterval(async () => {
+              try {
+                  const res = await fetch(`/api/generation-status/${timestamp}`);
+                  if (!res.ok) {
+                      // If status check fails (e.g., 404), stop polling
+                      clearInterval(pollingIntervals[timestamp]);
+                      delete pollingIntervals[timestamp];
+                      updateFolderCardStatus(timestamp, 'failed', { error: `状态检查失败 (HTTP ${res.status})` });
+                      return;
+                  }
+                  
+                  const data = await res.json();
+                  updateFolderCardStatus(timestamp, data.status, data);
+
+                  if (data.status === 'completed' || data.status === 'failed') {
+                      clearInterval(pollingIntervals[timestamp]);
+                      delete pollingIntervals[timestamp];
+                      if(data.status === 'completed') {
+                        // Final refresh of the list to ensure consistency
+                        setTimeout(loadFolders, 1000);
+                      }
+                  }
+              } catch (err) {
+                  console.error(`Polling error for ${timestamp}:`, err);
+                  clearInterval(pollingIntervals[timestamp]);
+                  delete pollingIntervals[timestamp];
+                  updateFolderCardStatus(timestamp, 'failed', { error: '无法连接到服务器进行状态检查' });
+              }
+          }, 3000); // Poll every 3 seconds
+      }
 
       async function openEditor(slug) {
         currentSlug = slug
@@ -285,6 +402,287 @@
           }
         }catch(e){ console.error(e) }
       })
+
+      // Upload files to timestamp folder (batched to bypass proxy limits)
+      async function uploadFiles() {
+        const filesInput = document.getElementById('uploadFiles')
+        const category = document.getElementById('uploadCategory').value
+        const files = filesInput.files
+        
+        if (!files || files.length === 0) {
+          alert('请选择要上传的文件！')
+          return
+        }
+        // Batch settings: keep per-request size small to avoid 413
+        const MAX_BATCH_BYTES = 4 * 1024 * 1024 // 4MB per request
+        const totalSize = Array.from(files).reduce((s,f)=>s + (f.size||0), 0)
+        let currentBatch = []
+        let currentBatchSize = 0
+        const batches = []
+        let hasOversize = false
+        for (const f of files) {
+          if ((f.size||0) > MAX_BATCH_BYTES) { hasOversize = true }
+          if (currentBatchSize + (f.size||0) > MAX_BATCH_BYTES && currentBatch.length>0) {
+            batches.push({files: currentBatch, size: currentBatchSize})
+            currentBatch = [f]
+            currentBatchSize = f.size||0
+          } else {
+            currentBatch.push(f)
+            currentBatchSize += f.size||0
+          }
+        }
+        if (currentBatch.length) batches.push({files: currentBatch, size: currentBatchSize})
+        if (hasOversize) {
+          if (!confirm('检测到有单个文件超过 4MB，将可能仍被网关限制。\n建议先提高反向代理的 client_max_body_size，或仅上传较小文件。\n\n仍要继续尝试吗？')) return
+        }
+        
+        const formData = new FormData()
+        for (let file of files) {
+          formData.append('files', file)
+        }
+        formData.append('category', category)
+        
+        const progressDiv = document.getElementById('uploadProgress')
+        const statusDiv = document.getElementById('uploadStatus')
+        const detailsDiv = document.getElementById('uploadDetails')
+        const progressBar = document.getElementById('uploadProgressBar')
+        
+        progressDiv.style.display = 'block'
+        statusDiv.textContent = `正在上传 ${files.length} 个文件...`
+        detailsDiv.textContent = ''
+        progressBar.style.width = '0%'
+        progressBar.textContent = '0%'
+        
+        try {
+          let sessionTimestamp = null
+          let uploadedBefore = 0
+          for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i]
+            const formData = new FormData()
+            batch.files.forEach(f => formData.append('files', f))
+            formData.append('category', category)
+            if (sessionTimestamp) formData.append('ts_override', sessionTimestamp)
+
+            // Use XMLHttpRequest for progress tracking per batch
+            const res = await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest()
+              let fakeTimer = null
+              let fakeProgress = 0
+
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  if (fakeTimer) { clearInterval(fakeTimer); fakeTimer = null }
+                  const percent = Math.round(((uploadedBefore + e.loaded) / Math.max(1,totalSize)) * 100)
+                  progressBar.style.width = percent + '%'
+                  progressBar.textContent = percent + '%'
+                  statusDiv.textContent = `正在上传第 ${i+1}/${batches.length} 批... ${percent}%`
+                } else {
+                  // Indeterminate: simulate progress within this batch up to 90% of its portion
+                  if (!fakeTimer) {
+                    fakeTimer = setInterval(() => {
+                      fakeProgress = Math.min(fakeProgress + 1, 90)
+                      const approx = Math.round(((uploadedBefore + fakeProgress/100*batch.size) / Math.max(1,totalSize)) * 100)
+                      progressBar.style.width = approx + '%'
+                      progressBar.textContent = approx + '%'
+                    }, 200)
+                  }
+                }
+              })
+
+              xhr.addEventListener('load', () => {
+                if (fakeTimer) { clearInterval(fakeTimer); fakeTimer = null }
+                const ct = (xhr.getResponseHeader('content-type') || '').toLowerCase()
+                const build = (ok)=>({
+                  ok,
+                  status: xhr.status,
+                  json: async () => {
+                    if (ct.includes('application/json')) return JSON.parse(xhr.responseText)
+                    try { return JSON.parse(xhr.responseText) } catch { throw new Error('非JSON响应: '+ (xhr.responseText||'').slice(0,120)) }
+                  },
+                  text: async () => xhr.responseText
+                })
+                resolve(build(xhr.status >= 200 && xhr.status < 300))
+              })
+
+              xhr.addEventListener('error', () => {
+                reject(new Error('网络错误'))
+              })
+
+              const url = sessionTimestamp ? ('/upload/' + encodeURIComponent(sessionTimestamp)) : '/upload'
+              xhr.open('POST', url)
+              xhr.send(formData)
+            })
+
+            let data
+            try {
+              data = await res.json()
+            } catch(parseErr) {
+              const txt = (await (typeof res.text === 'function' ? res.text() : Promise.resolve(''))).slice(0,200)
+              throw new Error(`${parseErr.message}${txt ? `\n\n响应预览:\n${txt}` : ''}`)
+            }
+
+            if (!(res.ok && data.success)) {
+              const extra = data && data.detail ? `\n详情: ${JSON.stringify(data.detail).slice(0,200)}` : ''
+              throw new Error((data.error || data.message || '未知错误') + extra)
+            }
+
+            // First batch returns timestamp; reuse for subsequent batches so files归一到同一文件夹
+            if (!sessionTimestamp) sessionTimestamp = data.timestamp
+            uploadedBefore += batch.size
+            const percentAfter = Math.round((uploadedBefore / Math.max(1,totalSize)) * 100)
+            progressBar.style.width = percentAfter + '%'
+            progressBar.textContent = percentAfter + '%'
+          }
+
+          statusDiv.textContent = '✅ 上传成功！'
+          detailsDiv.innerHTML = `
+            <strong>时间戳文件夹:</strong> ${sessionTimestamp}<br>
+            <strong>文件数量:</strong> ${files.length}<br>
+            <strong>总大小:</strong> ${(totalSize/1024/1024).toFixed(2)} MB<br>
+            <em>已自动刷新文件夹列表</em>
+          `
+          progressDiv.style.background = '#d4edda'
+          progressDiv.style.borderLeftColor = '#28a745'
+          progressBar.style.width = '100%'
+          progressBar.textContent = '100%'
+
+          filesInput.value = ''
+          setTimeout(() => { loadFolders() }, 1000)
+        } catch (err) {
+          statusDiv.textContent = '❌ 上传失败'
+          detailsDiv.textContent = err.message
+          progressDiv.style.background = '#f8d7da'
+          progressDiv.style.borderLeftColor = '#dc3545'
+        }
+      }
+
+      // Load upload folders
+      async function loadFolders() {
+        const foldersList = document.getElementById('foldersList')
+        foldersList.innerHTML = '<div style="padding:20px;text-align:center;color:#666">加载中...</div>'
+        
+        try {
+          const res = await fetch('/api/upload-folders')
+          const data = await res.json()
+          
+          if (data.folders && data.folders.length > 0) {
+            foldersList.innerHTML = data.folders.map(folder => {
+              let statusText, statusBg, statusColor, borderColor, btnText, btnBg, btnDisabled, resultHtml = '';
+              
+              switch(folder.processed) {
+                case 'running':
+                  statusText = '⚙️ 生成中...'; statusBg = '#d1ecf1'; statusColor = '#0f5661'; borderColor = '#17a2b8';
+                  btnText = '⏳ 生成中...'; btnBg = '#5bc0de'; btnDisabled = true;
+                  break;
+                case 'completed':
+                  statusText = '✅ 已完成'; statusBg = '#d4edda'; statusColor = '#155724'; borderColor = '#28a745';
+                  btnText = '✅ 已生成'; btnBg = '#6c757d'; btnDisabled = true;
+                  if (folder.blog_slug) {
+                    resultHtml = `<a href="/site/${folder.blog_slug}.html" target="_blank" class="btn btn-view" style="margin-top:8px;display:inline-block;width:100%;text-align:center;">👁️ 查看博文</a>`;
+                  }
+                  break;
+                case 'failed':
+                  statusText = '❌ 失败'; statusBg = '#f8d7da'; statusColor = '#721c24'; borderColor = '#dc3545';
+                  btnText = '🔁 重新生成'; btnBg = '#dc3545'; btnDisabled = false;
+                  if (folder.error) {
+                    resultHtml = `<div style="margin-top:8px;padding:8px;background:#f8d7da;color:#721c24;border-radius:4px;font-size:12px;word-wrap:break-word;"><strong>错误:</strong> ${folder.error}</div>`;
+                  }
+                  break;
+                default: // pending
+                  statusText = '⏳ 待处理'; statusBg = '#fff3cd'; statusColor = '#856404'; borderColor = '#ffc107';
+                  btnText = '✨ 生成博文'; btnBg = '#007bff'; btnDisabled = false;
+                  break;
+              }
+
+              return `
+              <div id="folder-card-${folder.timestamp}" style="background:#f9fafb;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-left:4px solid ${borderColor}">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+                  <h3 style="margin:0;font-size:16px;color:#333">📁 ${folder.timestamp}</h3>
+                  <span class="status-badge" style="padding:4px 12px;background:${statusBg};color:${statusColor};border-radius:12px;font-size:12px;font-weight:600">
+                    ${statusText}
+                  </span>
+                </div>
+                <div style="font-size:13px;color:#666;margin-bottom:12px">
+                  <div>📚 分类: <strong>${folder.category}</strong></div>
+                  <div>📄 文件: <strong>${folder.files_count}</strong> 个 (${folder.total_size_mb.toFixed(2)} MB)</div>
+                  <div>⏰ ${new Date(folder.upload_time).toLocaleString('zh-CN')}</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+                  <label for="cat-${folder.timestamp}" style="font-size:12px;color:#555">分类:</label>
+                  <input id="cat-${folder.timestamp}" type="text" value="${folder.category}" placeholder="未分类" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" />
+                </div>
+                <details style="margin-bottom:12px">
+                  <summary style="cursor:pointer;color:#007bff;font-size:13px;font-weight:600">查看文件列表 ▼</summary>
+                  <ul style="margin:8px 0 0 0;padding-left:20px;font-size:12px;color:#555">
+                    ${folder.files.map(f => `<li>${f.original_name} <em style="color:#999">(${(f.size/1024/1024).toFixed(2)} MB)</em></li>`).join('')}
+                  </ul>
+                </details>
+                <div class="actions">
+                  <button onclick="generateBlog('${folder.timestamp}')" class="btn generate-btn" style="width:100%;padding:8px 16px;background:${btnBg};color:#fff;border:none;border-radius:6px;cursor:${btnDisabled ? 'not-allowed' : 'pointer'};font-size:13px;font-weight:600" ${btnDisabled ? 'disabled' : ''}>
+                    ${btnText}
+                  </button>
+                  <div class="result-message" style="margin-top: 8px;">${resultHtml}</div>
+                </div>
+              </div>
+            `}).join('');
+
+            // After rendering, start polling for any 'running' tasks
+            data.folders.forEach(folder => {
+                if (folder.processed === 'running') {
+                    pollStatus(folder.timestamp);
+                }
+            });
+
+          } else {
+            foldersList.innerHTML = '<div style="padding:40px;text-align:center;color:#999">📭 暂无上传文件夹<br><small style="color:#ccc">上传文件后会在这里显示</small></div>'
+          }
+        } catch (err) {
+          foldersList.innerHTML = '<div style="padding:20px;text-align:center;color:#dc3545">❌ 加载失败: ' + err.message + '</div>'
+        }
+      }
+
+      // Generate blog from folder
+      async function generateBlog(timestamp) {
+        if (!confirm(`确定要从文件夹 ${timestamp} 生成博文吗？\n\n处理时间可能较长，任务将在后台运行...`)) return
+        
+        updateFolderCardStatus(timestamp, 'running');
+
+        try {
+          const catInput = document.getElementById('cat-' + timestamp);
+          const cat = catInput && catInput.value ? encodeURIComponent(catInput.value) : '';
+          const url = cat ? `/api/generate-blog/${timestamp}?category=${cat}` : `/api/generate-blog/${timestamp}`;
+          
+          const res = await fetch(url, { method: 'POST' });
+          const data = await res.json();
+          
+          if (res.status === 202) {
+            // Task started successfully, begin polling
+            pollStatus(timestamp);
+          } else {
+            // Immediate failure
+            const errorMsg = data.error || `请求失败 (HTTP ${res.status})`;
+            updateFolderCardStatus(timestamp, 'failed', { error: errorMsg });
+          }
+        } catch (err) {
+          updateFolderCardStatus(timestamp, 'failed', { error: err.message });
+        }
+      }
+
+      // Load folders on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        loadFolders();
+        // Clean up any lingering intervals when the page is reloaded/closed
+        window.addEventListener('beforeunload', () => {
+            Object.keys(pollingIntervals).forEach(key => {
+                clearInterval(pollingIntervals[key]);
+            });
+        });
+
+        try{
+          const form = document.getElementById('uploadForm');
+          form.addEventListener('submit', (ev)=>{ ev.preventDefault(); uploadFiles(); });
+        }catch(e){}
+      });
     </script>
   </body>
 </html>
